@@ -160,8 +160,20 @@ def initialize() {
 	}
 	delete.each { deleteChildDevice(it.deviceNetworkId) }
     
+    
+    //Subscribes to sunrise and sunset event to trigger refreshes
+	subscribe(location, "sunrise", monitorTheMonitor)
+	subscribe(location, "sunset", monitorTheMonitor)
+	subscribe(location, "mode", monitorTheMonitor)
+	subscribe(location, "sunriseTime", monitorTheMonitor)
+	subscribe(location, "sunsetTime", monitorTheMonitor)
+    
+    //Reset monitoring timestamp
+    state.lastMonitored = now()
+    
     // Schedule polling
-    schedule("0 0/" + (settings.polling.toInteger() > 0 )? settings.polling.toInteger() : 1  + " * * * ?", refresh )
+	schedulePoll()
+    schedule("19 0/" + 5 + " * * * ?", monitorPoll )
 }
 
 /* Access Management */
@@ -181,7 +193,7 @@ private forceLogin() {
 }
 
 private login() {
-	if (!(state.auth.expires_in > now())) {
+	if (state.auth.expires_in != null && state.auth.expires_in < now()) {
 		return doLogin()
 	} else {
 		return true
@@ -194,6 +206,12 @@ private doLogin() {
 		if (response.status == 200) {
 			state.auth.expires_in = now() + response.data.expires_in		
 			state.auth.access_token = response.data.access_token
+
+            //Only refresh the token if it has expired
+            if (response.data.access_token != null){
+            	state.auth.access_token = response.data.access_token
+                state.auth.expires_in = now() + response.data.expires_in		
+            }
 			return true
 		} else {
 			return false
@@ -324,7 +342,7 @@ def apiPost(apiPath, apiBody, callback = {}) {
 		query: [ access_token: state.auth.access_token ],
         body: apiBody
 	]
-    log.debug "HTTP POST : " + apiParam
+    log.debug "HTTP POST : " + apiParams
 	try {
 		httpPostJson("http://" + settings.ip_address + ":" + settings.ip_port + apiPath + "?access_token=" + state.auth.access_token, apiBody) { response ->
 			if (response.data.ErrorMessage) {
@@ -424,4 +442,71 @@ def sendStopAll() {
 	pause(2000)
 	refresh()
 	return true
+}
+
+def monitorPoll(){
+    try {                
+        log.debug "Monitoring the poll...Last poll stamp: " + state.polling.last
+        if (now() > state.polling.last + ((settings.polling.toInteger() > 0 )? settings.polling.toInteger() : 1)*100000*2){
+            log.debug "RainMachine polling schedule needs reboot!"
+            sendAlert("RainMachine schedule is dead! Restart!")
+            reSchedulePoll()
+        }
+        state.lastMonitored = now()
+    } catch (Error e)	{
+		log.debug "Error in RainMachine monitorPoll: $e"
+        sendAlert("Error in RainMachine monitorPoll: $e")
+	}
+    
+}
+
+private schedulePoll() {
+    log.debug "Creating RainMachine schedule..."
+    unschedule()
+	schedule("37 0/" + ((settings.polling.toInteger() > 0 )? settings.polling.toInteger() : 1)  + " * * * ?", refresh )
+    log.debug "RainMachine schedule successfully started!"   
+}
+
+private reSchedulePoll() {
+    try {
+        log.debug "Attempting to recreate the RainMachine schedule..."
+        schedule("37 0/" + ((settings.polling.toInteger() > 0 )? settings.polling.toInteger() : 1)  + " * * * ?", refresh )
+        log.debug "RainMachine schedule successfully restarted!"
+        sendAlert("RainMachine schedule successfully restarted!")
+	} catch (Error e)	{
+		log.debug "Error restarting RainMachine schedule: $e"
+        sendAlert("Error restarting RainMachine schedule: $e")
+	}
+}
+
+//Last line of defense against SDSS
+public monitorTheMonitor(evt){
+	try {                
+        log.debug "Event " + evt.displayName + " triggered monitoring the rainmachine monitor...Last poll stamp: " + state.lastMonitored
+        if (now() > state.lastMonitored + 480000){
+            log.debug "RainMachine monitor schedule needs reboot!"
+            sendAlert("RainMachine monitor schedule is dead! Restart!")
+            reScheduleMonitor()
+        }        
+    } catch (Error e)	{
+		log.debug "Error in RainMachine monitorPoll: $e"
+        sendAlert("Error in RainMachine monitorPoll: $e")
+	}
+}
+
+
+private reScheduleMonitor() {
+    try {
+        log.debug "Attempting to recreate the RainMachine monitor..."
+        schedule("19 0/" + 5 + " * * * ?", monitorPoll )
+        log.debug "RainMachine monitor successfully restarted!"
+        sendAlert("RainMachine monitor successfully restarted!")
+	} catch (Error e)	{
+		log.debug "Error restarting RainMachine monitor: $e"
+        sendAlert("Error restarting RainMachine monitor: $e")
+	}
+}
+
+def sendAlert(alert){
+	//sendSms("615-828-5772", "Alert: " + alert)
 }
