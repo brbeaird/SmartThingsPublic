@@ -204,8 +204,8 @@ private doLogin() {
 	// TODO: make call through hub later... 
 	apiPost("/api/4/auth/login",[pwd: settings.password, remember: 1]) { response ->
 		if (response.status == 200) {
-			state.auth.expires_in = now() + response.data.expires_in		
-			state.auth.access_token = response.data.access_token
+			//state.auth.expires_in = now() + response.data.expires_in		
+			//state.auth.access_token = response.data.access_token
 
             //Only refresh the token if it has expired
             if (response.data.access_token != null){
