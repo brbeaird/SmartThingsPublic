@@ -5,7 +5,7 @@ metadata {
 		capability "Switch"
 		capability "Sensor"
 
-		fingerprint profileId: "0104", inClusters: "0000,0003,0006", outClusters: "0019"
+		fingerprint profileId: "0104", inClusters: "0006, 0004, 0003, 0000, 0005", outClusters: "0019", manufacturer: "Compacta International, Ltd", model: "ZBMPlug15", deviceJoinName: "SmartPower Outlet V1"
 	}
 
 	// simulator metadata
@@ -19,13 +19,13 @@ metadata {
 		reply "zcl on-off off": "on/off: 0"
 	}
 
-	// UI tile definitions
-	tiles {
-		standardTile("switch", "device.switch", width: 2, height: 2, canChangeIcon: true) {
-			state "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff"
-			state "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#79b821"
+	tiles(scale: 2) {
+		multiAttributeTile(name:"switch", type: "lighting", width: 6, height: 4, canChangeIcon: true){
+			tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
+				attributeState "off", label: '${name}', action: "switch.on", icon: "st.switches.switch.off", backgroundColor: "#ffffff"
+				attributeState "on", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#79b821"
+			}
 		}
-
 		main "switch"
 		details "switch"
 	}
