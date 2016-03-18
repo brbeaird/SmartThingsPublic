@@ -70,7 +70,7 @@ metadata {
 			state("runTimeValue", label:'${currentValue} mins', backgroundColor:"#ffffff")
 		}
         valueTile("lastRefresh", "device.lastRefresh", height: 1, width: 3, inactiveLabel: false, decoration: "flat") {
-			state("lastRefreshValue", label:'Last refresh: ${currentValue} ago', backgroundColor:"#ffffff")
+			state("lastRefreshValue", label:'Last refresh: ${currentValue}', backgroundColor:"#ffffff")
 		}
 
 		main "contact"
@@ -99,7 +99,7 @@ def close() {
 
 // refresh status
 def refresh() {
-	sendEvent("name":"lastRefresh", "value": "Checking...")
+	sendEvent("name":"lastRefresh", "value": "Checking..." , display: false , displayed: false)    
     parent.refresh()
 	//poll()
 }
@@ -139,26 +139,15 @@ void setRunTime(runTimeSecs) {
 def updateDeviceLastRefresh(lastRefresh){	
     log.debug "Last refresh: " + lastRefresh
     
-    def lastActivityValue = ""
-	def diffTotal = now() - lastRefresh       
-	def diffDays  = (diffTotal / 86400000) as long
-	def diffHours = (diffTotal % 86400000 / 3600000) as long
-	def diffMins  = (diffTotal % 86400000 % 3600000 / 60000) as long
+    def refreshDate = new Date()
+    def hour = refreshDate.format("h", location.timeZone)
+    def minute =refreshDate.format("m", location.timeZone)
+    def ampm =refreshDate.format("a", location.timeZone)
+    //def finalString = refreshDate.getDateString() + ' ' + hour + ':' + minute + ampm
     
-	if      (diffDays == 1)  lastActivityValue += "${diffDays} Day "
-	else if (diffDays > 1)   lastActivityValue += "${diffDays} Days "
+    def finalString = new Date().format('MM/d/yyyy hh:mm',location.timeZone)
     
-	if      (diffHours == 1) lastActivityValue += "${diffHours} Hour "
-	else if (diffHours > 1)  lastActivityValue += "${diffHours} Hours "
-    
-	if      (diffMins == 1 || diffMins == 0 )  lastActivityValue += "${diffMins} Min"
-	else if (diffMins > 1)   lastActivityValue += "${diffMins} Mins"    
-    
-	sendEvent(name: "lastRefresh", value: lastActivityValue, display: true , displayed: true)
-    
-    //parent.sendAlert("Last refresh: " + lastRefresh)    
-    //def refreshDate = new Date( 1280512800L * 1000 )    
-    //sendEvent("name":"lastRefresh", "value": refreshDate)
+	sendEvent(name: "lastRefresh", value: finalString, display: true , displayed: true)
 }
 
 def updateDeviceStatus(status){

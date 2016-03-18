@@ -59,7 +59,7 @@ def prefLogIn() {
     atomicState.initialLogin = false
     atomicState.loginResponse = null    
     atomicState.zonesResponse = null
-    atomicState.programsResponse = null    
+    atomicState.programsResponse = null
     
     def showUninstall = ip_address != null && password != null
 	return dynamicPage(name: "prefLogIn", title: "Connect to RainMachine", nextPage:"prefLogInWait", uninstall:showUninstall, install: false) {
@@ -257,7 +257,7 @@ def getZonesAndPrograms(){
 def installed() {
 	log.info  "installed()"
 	log.debug "Installed with settings: " + settings
-    unschedule()
+    //unschedule()
 }
 
 def updated() {
@@ -268,7 +268,7 @@ def updated() {
 		runNow: true
 	]
     //unschedule()
-	//unsubscribe()	
+	unsubscribe()	
 	initialize()
 }
 
@@ -343,27 +343,30 @@ def initialize() {
 	}
 	delete.each { deleteChildDevice(it.deviceNetworkId) }
     
+    //Update data for child devices
+    pollAllChild()
+    
     
     //Subscribes to sunrise and sunset event to trigger refreshes
-	//subscribe(location, "sunrise", monitorTheMonitor)
-	//subscribe(location, "sunset", monitorTheMonitor)
-	//subscribe(location, "mode", monitorTheMonitor)
-	//subscribe(location, "sunriseTime", monitorTheMonitor)
-	//subscribe(location, "sunsetTime", monitorTheMonitor)
+	subscribe(location, "sunrise", monitorTheMonitor)
+	subscribe(location, "sunset", monitorTheMonitor)
+	subscribe(location, "mode", monitorTheMonitor)
+	subscribe(location, "sunriseTime", monitorTheMonitor)
+	subscribe(location, "sunsetTime", monitorTheMonitor)
     
     //Reset monitoring timestamp
-    //atomicState.lastMonitored = now()
+    atomicState.lastMonitored = now()
     
     // Schedule polling
-	//schedulePoll()
-    //schedule("19 0/" + 5 + " * * * ?", monitorPoll )
+	schedulePoll()
+    schedule("19 0/" + 5 + " * * * ?", monitorPoll )
 	
 }
 
 
 /* Access Management */
 private loginTokenExists(){
-	log.debug "Checking for token: " + atomicState.auth
+	log.debug "Checking for token: "
     return (atomicState.access_token != null && atomicState.expires_in != null && atomicState.expires_in > now()) 
 }
 
@@ -528,6 +531,7 @@ def refresh() {
                 pollAllChild()
                 return true
             }
+            log.debug "Current zone response: " + atomicState.zonesResponse + "Current pgm response: " + atomicState.programsResponse
             i++
         }
         
@@ -686,7 +690,7 @@ def monitorPoll(){
 }
 
 private schedulePoll() {
-    log.debug "Creating RainMachine schedule..."
+    log.debug "Creating RainMachine schedule. Setting was " + settings.polling
     unschedule()
 	schedule("37 0/" + ((settings.polling.toInteger() > 0 )? settings.polling.toInteger() : 1)  + " * * * ?", refresh )
     log.debug "RainMachine schedule successfully started!"   
@@ -733,5 +737,5 @@ private reScheduleMonitor() {
 }
 
 def sendAlert(alert){
-	sendSms("615-828-5772", "Alert: " + alert)
+	//sendSms("615-828-5772", "Alert: " + alert)
 }
